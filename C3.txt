@@ -1,0 +1,52 @@
+public with sharing class CookbookBot_GetOrderStatus {
+    public class BookingOutput {
+        @InvocableVariable
+        public String ConfirmationNumber;
+    }
+    public class BookingInput {
+        @InvocableVariable
+        public String Restaurant;
+        
+        @InvocableVariable
+        public Date ReservationDate;
+        
+        @InvocableVariable
+        public String TimeSlot;
+        
+        @InvocableVariable
+        public integer NumberofPeople;
+    }
+    @InvocableMethod(label='Get Booking Details')
+    public static List<BookingOutput> getBookingDetails(List<BookingInput> bookings) {
+        List<BookingOutput> outputlist = new List<BookingOutput>();
+        if(bookings !=null && !bookings.isEmpty()){
+            BookingInput input = new BookingInput();
+            for (BookingInput booking : bookings) {
+                input.Restaurant = booking.Restaurant;
+                input.ReservationDate = booking.ReservationDate;
+                input.TimeSlot= booking.TimeSlot;
+                input.NumberofPeople = booking.NumberofPeople;
+            }
+            if(input.Restaurant!=null){
+                Restaurant_Reservation__c res = new Restaurant_Reservation__c();
+                List<Account> acc = [select Id,Name from Account where name = :input.Restaurant];
+                res.Restaurant__c =acc[0].id;
+                res.Reservation_Date__c=  input.ReservationDate ;
+                res.Time_Slot__c=input.TimeSlot;
+                res.Number_of_People__c= input.NumberofPeople ;              
+                try{
+                    insert res;
+                    BookingOutput conNum = new Bookingoutput();
+                    Restaurant_Reservation__c reserve = [select id,name,Confirmation_Number__c from Restaurant_Reservation__c where id=:res.id];
+                    conNum.ConfirmationNumber = reserve.Confirmation_Number__c;
+                    outputlist.add(conNum);
+                }catch(Dmlexception e)
+                {
+                    system.debug('The following message has occured'+e.getMessage());
+                }
+            }
+        }
+        return outputlist;
+    }
+}
+
